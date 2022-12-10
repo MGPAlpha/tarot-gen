@@ -1,0 +1,15 @@
+{
+  "name": "tarot-gen",
+  "version": "1.0.0",
+  "description": "Tarot card generator using Wombo Dream API",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js test"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dream-api": "^1.0.9",
+    "yargs": "^17.6.2"
+  }
+}
