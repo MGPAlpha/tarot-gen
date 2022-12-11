@@ -12,6 +12,7 @@
     "dream-api": "^1.0.9",
     "html-creator": "^0.6.2",
     "prettier": "^2.8.1",
+    "roman-numerals-convert": "^1.0.5",
     "yargs": "^17.6.2"
   }
 }

@@ -4,6 +4,7 @@ const fs = require("fs");
 const https = require('https');
 const yargs = require('yargs');
 const htmlCreator = require('html-creator');
+const { parse, stringify } = require('roman-numerals-convert');
 
 const print = console.log;
 
@@ -143,6 +144,11 @@ const tarotSettings = [
         extraPrompts: []
     }
 ];
+
+function stringifyWith0(str) {
+    if (str == '0') return '0';
+    return stringify(str);
+}
 
 function sleep(ms) {
     return new Promise((resolve) => {
@@ -318,15 +324,15 @@ async function generatePage(name) {
                 let relatedGenerations = availableFiles.filter(c => c.indexOf(`${card.index}_Style${style.id}`) == 0);
                 // print(relatedGenerations);
                 let node = {type: 'tr', content: [
-                    {type: 'td', content: `${card.index}: ${card.name}`},
+                    {type: 'td', content: `${stringifyWith0(card.index)}: ${card.name}`},
                     ...relatedGenerations.map(image => {
                         print(image.match(/^\d+_Style\d+_[^_]+_([^\.]*)\.jpe?g/i)[1]);
-                        let imageNodes = [
-                            {type: 'td', content: `"${image.match(/^\d+_Style\d+_[^_]+_([^\.]*)\.jpe?g/i)[1]}"`},
-                            {type: 'td', content: [{type: 'img', attributes: {src: image, width: "100%", style: "object-fit: scale-down;"}}]}
-                        ]
-                        return imageNodes;
-                    }).flat()
+                        let imageNode = {type: 'td', content: [
+                            {type: 'div', attributes: {style: "text-align: center;"}, content: `"${image.match(/^\d+_Style\d+_[^_]+_([^\.]*)\.jpe?g/i)[1]}"`},
+                            {type: 'div', content: [{type: 'img', attributes: {src: image, width: "100%", style: "object-fit: scale-down;"}}]}
+                        ]}
+                        return imageNode;
+                    })
                 ]};
                 return node;
             })}
