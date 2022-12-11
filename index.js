@@ -119,8 +119,8 @@ async function beginGeneration(style=1, setName, replace) {
         if (!replace && fs.existsSync(genPath)) {
             return null;
         }
-        return dream.generateImage(style, gen.prompt, sessionToken, 0, "MEDIUM", false, { "name": "", "public": false, "visible": true }, callback=(result)=>{
-            print(result.state);
+        return dream.generateImage(style, gen.prompt, sessionToken, null, "MEDIUM", false, { "name": "", "public": false, "visible": true }, callback=(result)=>{
+            //
         }).then(res => {
             if (res.state != "completed") {
                 failures.push({
@@ -140,7 +140,7 @@ async function beginGeneration(style=1, setName, replace) {
                     console.log(`Successfully downloaded ${genPath}`); 
                 })
             })
-        })/*.catch(err => failures.push(genPath))*/;
+        }).catch(err => failures.push(genPath));
     }));
 
     if (failures.length > 0) {
