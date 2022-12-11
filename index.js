@@ -26,6 +26,120 @@ const tarotSettings = [
         prefixThe: true,
         altNames: ["Popess"],
         extraPrompts: []
+    },
+    {
+        name: "Empress",
+        prefixThe: true,
+        altNames: [],
+        extraPrompts: []
+    },
+    {
+        name: "Emperor",
+        prefixThe: true,
+        altNames: [],
+        extraPrompts: []
+    },
+    {
+        name: "Pope",
+        prefixThe: true,
+        altNames: ["Hierophant"],
+        extraPrompts: []
+    },
+    {
+        name: "Lovers",
+        prefixThe: true,
+        altNames: ["Marriage"],
+        extraPrompts: []
+    },
+    {
+        name: "Chariot",
+        prefixThe: true,
+        altNames: [],
+        extraPrompts: []
+    },
+    {
+        name: "Justice",
+        prefixThe: false,
+        altNames: [],
+        extraPrompts: []
+    },
+    {
+        name: "Hermit",
+        prefixThe: true,
+        altNames: [],
+        extraPrompts: []
+    },
+    {
+        name: "Wheel of Fortune",
+        prefixThe: true,
+        altNames: [],
+        extraPrompts: []
+    },
+    {
+        name: "Strength",
+        prefixThe: false,
+        altNames: ["Fortitude"],
+        extraPrompts: []
+    },
+    {
+        name: "Hanged Man",
+        prefixThe: true,
+        altNames: ["Sacrifice"],
+        extraPrompts: []
+    },
+    {
+        name: "Death",
+        prefixThe: false,
+        altNames: [],
+        extraPrompts: []
+    },
+    {
+        name: "Temperance",
+        prefixThe: false,
+        altNames: [],
+        extraPrompts: []
+    },
+    {
+        name: "Devil",
+        prefixThe: true,
+        altNames: [],
+        extraPrompts: []
+    },
+    {
+        name: "Tower",
+        prefixThe: true,
+        altNames: ["House of God"],
+        extraPrompts: []
+    },
+    {
+        name: "Star",
+        prefixThe: true,
+        altNames: [],
+        extraPrompts: []
+    },
+    {
+        name: "Moon",
+        prefixThe: true,
+        altNames: [],
+        extraPrompts: []
+    },
+    {
+        name: "Sun",
+        prefixThe: true,
+        altNames: [],
+        extraPrompts: []
+    },
+    {
+        name: "Judgement",
+        prefixThe: false,
+        altNames: ["Creation"],
+        extraPrompts: []
+    },
+    {
+        name: "World",
+        prefixThe: true,
+        altNames: [],
+        extraPrompts: []
     }
 ]
 
@@ -123,10 +237,7 @@ async function beginGeneration(style=1, setName, replace) {
             //
         }).then(res => {
             if (res.state != "completed") {
-                failures.push({
-                    file: genPath,
-                    reason: res
-                });
+                failures.push(genPath);
                 return;
             }
             let url = res.result.final;
