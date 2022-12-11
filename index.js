@@ -3,6 +3,7 @@ const { defaultMaxListeners } = require("events");
 const fs = require("fs");
 const https = require('https');
 const yargs = require('yargs');
+const htmlCreator = require('html-creator');
 
 const print = console.log;
 
@@ -145,7 +146,7 @@ const tarotSettings = [
 
 function sleep(ms) {
     return new Promise((resolve) => {
-      setTimeout(resolve, ms);
+        setTimeout(resolve, ms);
     });
 }
 
@@ -153,13 +154,13 @@ function arrayProductRecursive( ...optionArrays) {
     if (optionArrays.length <= 1) {
         return optionArrays[0].map(v => [v]);
     }
-
+    
     let subOptions1 = optionArrays.slice(0, Math.floor(optionArrays.length/2));
     let subOptions2 = optionArrays.slice(Math.floor(optionArrays.length/2), optionArrays.length);
-
+    
     let combination1 = arrayProductRecursive(...subOptions1);
     let combination2 = arrayProductRecursive(...subOptions2);
-
+    
     let outputs = [];
     for (option1 of combination1) {
         for (option2 of combination2) {
@@ -167,11 +168,11 @@ function arrayProductRecursive( ...optionArrays) {
         }
     }
     return outputs;
-
+    
 }
 
 function arrayProduct(namestrings = null, ...optionArrays) {
-
+    
     let output = arrayProductRecursive(...optionArrays);
     if (namestrings) {
         output = output.map(v => {
@@ -194,16 +195,16 @@ async function generateNewToken() {
 }
 
 async function beginGeneration(style=1, setName, replace) {
-
+    
     let generations = [];
-
+    
     // await generateNewToken();
     for (index in tarotSettings) {
         let card = tarotSettings[index];
-
+        
         let cardVariations = arrayProduct(["name", "prefixThe", "postfixTarot"], [card.name, ...card.altNames], (card.prefixThe ? [true, false] : [false]), [true, false]);
         cardVariations.push(...arrayProduct(["name", "prefixThe", "postfixTarot"], [...card.extraPrompts], [false], [false]))
-
+        
         let cardPrompts = cardVariations.map(v => {
             let out = v.name;
             if (v.prefixThe) {
@@ -214,7 +215,7 @@ async function beginGeneration(style=1, setName, replace) {
             }
             return out;
         });
-
+        
         let cardGenerations = cardPrompts.map(p => {
             return {
                 prompt: p,
@@ -222,13 +223,13 @@ async function beginGeneration(style=1, setName, replace) {
                 primaryName: card.name
             };
         });
-
+        
         generations.push(...cardGenerations);
     }
-
+    
     let requests = []
     let failures = [];
-
+    
     
     print("Generating Tarot Cards via Wombo Dream API");
     for (gen of generations) {
@@ -262,15 +263,15 @@ async function beginGeneration(style=1, setName, replace) {
         print(`Requested image for ${genPath}`);
         await sleep(500);
     };
-
+    
     await Promise.all(requests);
-
+    
     if (failures.length > 0) {
         print("Failed generations:")
         print(failures);
     }
-
-
+    
+    
 }
 
 async function printStyles() {
@@ -279,6 +280,74 @@ async function printStyles() {
     for (style of styles) {
         print(`${style.id}: ${style.name}`);
     }
+}
+
+async function generatePage(name) {
+    const setFolder = `${outputPath}/${name}`;
+    let availableFiles = fs.readdirSync(setFolder);
+    availableFiles = availableFiles.filter(file => file.match(/.jpe?g$/ig));
+    // print(availableFiles);
+    let cardIndexes = availableFiles.map(file => parseInt(file.match(/^(\d+)_/i)[1]));
+    cardIndexes = [...(new Set(cardIndexes))];
+    cardIndexes = cardIndexes.sort((a, b) => a-b);
+    
+    let availableStyles = await dream.getStyles();
+    
+    let cards = cardIndexes.map(i => {
+        return {index: i, name: (tarotSettings[i].prefixThe ? "The " : "")+ tarotSettings[i].name}
+        // let style = availableStyles.find(style => style.id == i);
+        // return {index: i, name: style.name};
+    });
+    
+    let styles = availableFiles.map(file => parseInt(file.match(/^\d+_Style(\d+)/i)[1]));
+    styles = [...new Set(styles)];
+    styles = styles.sort((a,b) => a-b);
+    
+    styles = styles.map(i => {
+        let style = availableStyles.find(style => style.id == i);
+        return {id: i, name: style.name};
+    });
+    
+    print(cards);
+    print(styles);
+    
+    let styleNodes = styles.map(style => {
+        let node = {type: 'div', content: [
+            {type: 'h1', content: `Style: ${style.name} (id ${style.id})`},
+            {type: 'table', attributes: {width: "100%", style: "table-layout: fixed;"}, content: cards.map(card => {
+                let relatedGenerations = availableFiles.filter(c => c.indexOf(`${card.index}_Style${style.id}`) == 0);
+                // print(relatedGenerations);
+                let node = {type: 'tr', content: [
+                    {type: 'td', content: `${card.index}: ${card.name}`},
+                    ...relatedGenerations.map(image => {
+                        print(image.match(/^\d+_Style\d+_[^_]+_([^\.]*)\.jpe?g/i)[1]);
+                        let imageNodes = [
+                            {type: 'td', content: `"${image.match(/^\d+_Style\d+_[^_]+_([^\.]*)\.jpe?g/i)[1]}"`},
+                            {type: 'td', content: [{type: 'img', attributes: {src: image, width: "100%", style: "object-fit: scale-down;"}}]}
+                        ]
+                        return imageNodes;
+                    }).flat()
+                ]};
+                return node;
+            })}
+        ]}
+        return node;
+    });
+    
+    const pageNode = [
+        {
+            type: 'head',
+            content: [{ type: 'title', content: 'Generated HTML' }]
+        },
+        {
+            type: 'body',
+            attributes: { style: 'padding: 1rem' },
+            content: styleNodes,
+        },
+    ];
+
+    let html = new htmlCreator(pageNode);
+    await html.renderHTMLToFile(`${setFolder}/index.html`);
 }
 
 const outputPath = `${__dirname}/files`;
@@ -292,40 +361,46 @@ if (!fs.existsSync(outputPath)) {
 }
 
 const argv = yargs
-    .command("all", "Generate full tarot set with Wombo Dream")
-    .command("interactive", "Interactive generator")
-    .command("styles", "Get available styles from Wombo Dream")
-    .option("style", {
-        alias: 's',
-        description: "Generate with a particular style",
-        type: "number"
-    })
-    .option("setname", {
-        alias: 'n',
-        description: "Name of folder to generate results in",
-        type: "string"
-    })
-    .option("replace", {
-        alias: 'r',
-        description: "Replace old generations",
-        type: "boolean"
-    })
-    .argv;
+.command("all", "Generate full tarot set with Wombo Dream")
+.command("interactive", "Interactive generator")
+.command("styles", "Get available styles from Wombo Dream")
+.command("page", "Generate HTML document with all generated images for a given set")
+.option("style", {
+    alias: 's',
+    description: "Generate with a particular style",
+    type: "number"
+})
+.option("setname", {
+    alias: 'n',
+    description: "Name of folder to generate results in",
+    type: "string"
+})
+.option("replace", {
+    alias: 'r',
+    description: "Replace old generations",
+    type: "boolean"
+})
+.argv;
 
 
 
 if (argv._.includes("styles")) {
     printStyles();
     return;
-} else if (argv._.includes("interactive")) {
-
+} else if (argv._.includes("page")) {
+    if (!argv.setname) {
+        print("Command requires a set name for an existing set");
+        return;
+    }
+    let name = argv.setname;
+    generatePage(name);
 } else {
-
+    
     let style = defaultStyle;
     let setName = defaultSetName;
     let replace = defaultReplace;
-
-
+    
+    
     if (argv.style) {
         style = argv.style;
     }
@@ -335,7 +410,7 @@ if (argv._.includes("styles")) {
     if (argv.replace) {
         replace = argv.replace;
     }
-
+    
     beginGeneration(style, setName, replace);
 }
 
