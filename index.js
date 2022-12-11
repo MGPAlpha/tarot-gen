@@ -141,7 +141,13 @@ const tarotSettings = [
         altNames: [],
         extraPrompts: []
     }
-]
+];
+
+function sleep(ms) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+}
 
 function arrayProductRecursive( ...optionArrays) {
     if (optionArrays.length <= 1) {
@@ -220,20 +226,21 @@ async function beginGeneration(style=1, setName, replace) {
         generations.push(...cardGenerations);
     }
 
+    let requests = []
     let failures = [];
 
     
-
-    await Promise.all(generations.map(gen => {
+    print("Generating Tarot Cards via Wombo Dream API");
+    for (gen of generations) {
         const setFolder = `${outputPath}/${setName}`;
         if (!fs.existsSync(setFolder)) {
             fs.mkdirSync(setFolder);
         }
         const genPath = `${setFolder}/${gen.index}_Style${style}_${gen.primaryName}_${gen.prompt}.jpeg`;
         if (!replace && fs.existsSync(genPath)) {
-            return null;
+            continue;
         }
-        return dream.generateImage(style, gen.prompt, sessionToken, null, "MEDIUM", false, { "name": "", "public": false, "visible": true }, callback=(result)=>{
+        requests.push(dream.generateImage(style, gen.prompt, sessionToken, null, "MEDIUM", false, { "name": "", "public": false, "visible": true }, callback=(result)=>{
             //
         }).then(res => {
             if (res.state != "completed") {
@@ -251,8 +258,12 @@ async function beginGeneration(style=1, setName, replace) {
                     console.log(`Successfully downloaded ${genPath}`); 
                 })
             })
-        }).catch(err => failures.push(genPath));
-    }));
+        }).catch(err => failures.push(genPath)));
+        print(`Requested image for ${genPath}`);
+        await sleep(500);
+    };
+
+    await Promise.all(requests);
 
     if (failures.length > 0) {
         print("Failed generations:")
